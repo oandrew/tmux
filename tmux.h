@@ -1254,6 +1254,7 @@ struct session {
 
 #define SESSION_PASTING 0x1
 #define SESSION_ALERTED 0x2
+#define SESSION_BRACKET_PASTING 0x4
 	int		 flags;
 
 	u_int		 attached;

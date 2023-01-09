@@ -42,6 +42,7 @@ static void	server_client_check_modes(struct client *);
 static void	server_client_set_title(struct client *);
 static void	server_client_set_path(struct client *);
 static void	server_client_reset_state(struct client *);
+static int 	server_client_is_bracket_pasting(struct session *, key_code);
 static int	server_client_assume_paste(struct session *);
 static void	server_client_update_latest(struct client *);
 
@@ -1754,6 +1755,22 @@ out:
 	return (key);
 }
 
+static int
+server_client_is_bracket_pasting(struct session *s, key_code key)
+{
+	if (key == KEYC_PASTE_START) {
+		s->flags |= SESSION_BRACKET_PASTING;
+		log_debug("session %s bracket-pasting on", s->name);
+		return (1);
+	} else if (key == KEYC_PASTE_END) {
+		s->flags &= ~SESSION_BRACKET_PASTING;
+		log_debug("session %s bracket-pasting off", s->name);
+		return (1);
+	} else {
+		return !!(s->flags & SESSION_BRACKET_PASTING);
+	}
+}
+
 /* Is this fast enough to probably be a paste? */
 static int
 server_client_assume_paste(struct session *s)
@@ -1860,6 +1877,10 @@ server_client_key_callback(struct cmdq_item *item, void *data)
 
 	/* Forward mouse keys if disabled. */
 	if (KEYC_IS_MOUSE(key) && !options_get_number(s->options, "mouse"))
+		goto forward_key;
+
+	/* Forward if bracket pasting */
+	if (server_client_is_bracket_pasting(s, key))
 		goto forward_key;
 
 	/* Treat everything as a regular key when pasting is detected. */
